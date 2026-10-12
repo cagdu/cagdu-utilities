@@ -4,6 +4,22 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr/1.1.0/)'a dayanır. 0.x 
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-12
+
+Kırıcı değişiklik yok: yalnızca eklemeler.
+
+### Eklenenler
+
+- **`util.env`**: ortam değişkeni doğrulama yardımcıları (makro-api `src/utils/env.ts`'den genelleştirildi). `createEnvHelpers(z)` →
+  `requiredEnv`, `stringEnv`, `optionalEnv`, `intEnv`, `positiveIntEnv`, `portEnv`, `booleanEnv`, `listEnv`, `enumEnv`, `nodeEnv`, `urlEnv`,
+  `postgresUrl`, `pemEnv`, `jsonEnv`; ayrıca `unescapePem`, `parseEnv` (saf), `loadEnv` (hata → log + `process.exit`, ya da fırlatma),
+  `formatEnvError`. Boş metin tanımsız sayılır; hata mesajları değeri içermez; çıktı tipleri `z.infer` ile çıkarılır.
+  `zod` (>=4) isteğe bağlı peer dependency olarak eklendi (çalışma zamanında yüklenmez; yalnızca tipler için).
+
+## [0.2.0] - 2026-10-09 (`cagdu-utilities` adıyla ilk yayın)
+
+`cagd-utilities` 0.2.0 (2026-10-03) içeriğine ek olarak:
+
 ### Değişenler
 
 - **Paket adı `cagd-utilities` → `cagdu-utilities`** (eski npm hesabına erişim kalmadı). Tüketiciler bağımlılığı ve import yollarını
@@ -20,7 +36,7 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr/1.1.0/)'a dayanır. 0.x 
 - `service.jobs`: tur zaman aşımı sayacı `unref()` edilmiyor. Süreci açık tutan başka bir şey yokken `runNow()`/tur hiç sonuçlanmıyordu (jobs testleri bu
   yüzden kırmızıydı).
 
-## [0.2.0] - 2026-10-03
+## [0.2.0] - 2026-10-03 (`cagd-utilities`)
 
 Kırıcı değişiklik yok: yalnızca eklemeler; `onceEvery` pencereyi artık milisaniye hassasiyetiyle uygular (tam saniyeli çağrılarda davranış aynı).
 

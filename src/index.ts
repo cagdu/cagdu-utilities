@@ -63,6 +63,7 @@ export type {
 	RegisteredPrismaClient,
 	WebServiceOptions,
 } from "./services";
+export type { EnumEnvOptions, EnvHelpers, EnvIssue, EnvParseResult, EnvSchema, IntEnvOptions, JsonEnvOptions, LoadEnvOptions, UrlEnvOptions } from "./util/env";
 export type { ApiError } from "./util/http";
 export type { ApiErrorResponse, ApiResponse, ApiSuccessResponse, ClientIpOptions, ErrorOptions, HealthRouterOptions, RequestIdOptions, SuccessOptions, Transaction } from "./util/http";
 export type {

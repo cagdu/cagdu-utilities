@@ -13,7 +13,7 @@ import { config, service, services, util } from "cagdu-utilities";
 | `config`   | `cagdu-utilities/config`   | `config.data` (değerler) + `config.manager` (yönetim)                              |
 | `service`  | `cagdu-utilities/service`  | **Hazır örnekler**: `service.prisma`, `service.web`, `service.redis`, `service.jobs`, `bootstrap`… |
 | `services` | `cagdu-utilities/services` | **Ham sınıflar**: `PrismaService`, `WebService`, … (root'ta `classes` adıyla da)   |
-| `util`     | `cagdu-utilities/util`     | `util.date`, `util.http` (cevap standardı, `ApiError`, `healthRouter`), `util.log` |
+| `util`     | `cagdu-utilities/util`     | `util.date`, `util.env` (ortam değişkeni şemaları), `util.http` (cevap standardı, `ApiError`, `healthRouter`), `util.log` |
 
 **`service` mi `services` (`classes`) mı?**
 
@@ -65,6 +65,7 @@ Sadece **kullandığın** servisin paketini kur. Gerisi opsiyonel:
 | Axios             | `axios`                                                               |
 | Mail              | `nodemailer`                                                          |
 | Log (opsiyonel)   | `cagd-log` (yoksa `console` kullanılır)                               |
+| `util.env` / `util.list` | `zod` v4 (örneği parametre olarak verilir; kütüphane yüklemez)  |
 
 ### Paket yoksa ne olur?
 
@@ -408,6 +409,7 @@ util.date.getLocalISO(); // "2026-09-24T11:30:00.000+03:00" (ofsetli yerel saat)
 util.date.getLocalDay(); // "2026-09-24"
 util.log.info("mesaj"); // cagd-log varsa onu kullanır
 util.setLogger({ info: myLogger.info }); // kendi logger'ın
+util.env.createEnvHelpers(z); // ortam değişkeni şema yardımcıları (aşağıda)
 util.http.successResponse({ data }); // API cevap standardı
 util.http.ApiError; // standart hata sınıfı
 util.http.healthRouter(); // GET /health
@@ -423,6 +425,67 @@ mesaj `issues[0].message`, `data: { path }` · Prisma `P2002` → `409 CONFLICT`
 
 **İstemci IP (`getClientIp`):** başlıklara varsayılan olarak **güvenilmez**; `X-Forwarded-For`'un ilk değeri yalnızca `trustedForwardHeader(req)`
 `true` dönerse kullanılır (ör. kimliği doğrulanmış bir ağ geçidi). `trustProxy: true` Express'in `req.ip`'sini kullanır. `::ffff:` öneki kırpılır.
+
+### Ortam değişkenleri (`util.env`)
+
+Uygulama yalnızca **şemayı** tanımlar; metin → sayı/boolean/liste/JSON dönüşümü, varsayılanlar, boş değer kuralı ve hata mesajları kütüphanededir.
+zod örneği parametre olarak verilir (kütüphane zod'u yüklemez); çıktı tipleri `z.infer` ile tam olarak çıkarılır.
+
+```ts
+// src/utils/env.ts
+import "dotenv/config";
+import { z } from "zod";
+import { util } from "cagdu-utilities";
+
+const { nodeEnv, enumEnv, requiredEnv, stringEnv, optionalEnv, postgresUrl, urlEnv, pemEnv, jsonEnv, positiveIntEnv, portEnv, booleanEnv, listEnv } =
+	util.env.createEnvHelpers(z);
+
+export const envSchema = z.object({
+	NODE_ENV: nodeEnv(), // development | test | production, vars. development
+	DATABASE_TYPE: enumEnv("DATABASE_TYPE", ["postgres"]),
+	DATABASE_URL: postgresUrl("DATABASE_URL", { hint: "bkz. .env.example" }),
+	DATABASE_MIGRATE_URL: optionalEnv(postgresUrl("DATABASE_MIGRATE_URL")),
+	REDIS_URL: urlEnv("REDIS_URL", { protocols: ["redis", "rediss"] }),
+	JWT_ISSUER: stringEnv("makro-api"),
+	JWT_PRIVATE_KEY: pemEnv("JWT_PRIVATE_KEY"), // "\n" kaçışları gerçek satır sonuna çevrilir
+	JWT_KEY_ID: requiredEnv("JWT_KEY_ID"),
+	JWT_PREVIOUS_PUBLIC_KEYS: optionalEnv(jsonEnv("JWT_PREVIOUS_PUBLIC_KEYS", z.array(z.object({ kid: z.string(), pem: z.string().transform(util.env.unescapePem) })))),
+	PORT: portEnv(3000, "PORT"),
+	ACCESS_TTL_SEC: positiveIntEnv(900, "ACCESS_TTL_SEC"),
+	PUSH_ENABLED: booleanEnv(true, "PUSH_ENABLED"),
+	CORS_ORIGINS: listEnv([], ","),
+	EXPO_ACCESS_TOKEN: optionalEnv(z.string().trim()),
+});
+export type Env = z.infer<typeof envSchema>;
+
+/** Testler için saf doğrulama (process.exit çağırmaz). */
+export const parseEnv = (source: NodeJS.ProcessEnv = process.env) => util.env.parseEnv(envSchema, source);
+
+/** Hata varsa `[env] Ortam değişkeni doğrulanamadı: 'DATABASE_URL' - DATABASE_URL zorunludur` loglanır ve süreç exit(1) ile kapanır. */
+export const env = util.env.loadEnv(envSchema);
+export default env;
+```
+
+| Yardımcı                                         | Girdi → çıktı                                                                                     |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| `requiredEnv(label, message?)`                   | kırpılmış metin; boşsa `"<label> zorunludur"`                                                     |
+| `stringEnv(default)`                             | kırpılmış metin; boşsa varsayılan                                                                 |
+| `optionalEnv(schema)`                            | boş → `undefined`, dolu değer `schema` ile doğrulanır                                             |
+| `intEnv(default, label, { min, max, message })`  | tam sayı (sınırlar dahil)                                                                         |
+| `positiveIntEnv(default, label)`                 | ≥ 1 tam sayı (`"900"` → `900`)                                                                    |
+| `portEnv(default, label)`                        | 1–65535                                                                                           |
+| `booleanEnv(default, label)`                     | `true/false/1/0/yes/no/on/off`; **başka değer hatadır** (sessizce `true` sayılmaz)               |
+| `listEnv(default?, separator?)`                  | `"a, b,,c"` → `["a", "b", "c"]`                                                                   |
+| `enumEnv(label, values, { default, message })`   | sabit değerlerden biri; `default` yoksa zorunlu                                                   |
+| `nodeEnv(default?)`                              | `development \| test \| production`                                                               |
+| `urlEnv(label, { protocols, hint })`             | zorunlu URL; `protocols` verilirse yalnızca o şemalar                                             |
+| `postgresUrl(label, { hint })`                   | zorunlu `postgres://` / `postgresql://`                                                           |
+| `pemEnv(label, message?)`                        | zorunlu PEM, `\n` kaçışları çözülür                                                               |
+| `jsonEnv(label, schema, { message })`            | JSON metni → `schema` ile doğrulanmış değer; hata yolu `["KEYS", 0, "kid"]` gibi alanın altına düşer |
+
+Ortak kurallar: boş metin (`""`, yalnızca boşluk) **tanımsız** sayılır. Hata mesajları **değeri içermez** (sırlar loga düşmez).
+Bağımsız fonksiyonlar: `unescapePem(pem)`, `parseEnv(schema, source?)` (saf), `loadEnv(schema, { source, exitOnError, exitCode })`
+(`exitOnError: false` → `Error` fırlatır), `formatEnvError(error)` (tüm hatalar tek satırda).
 
 ### Liste sözleşmesi (`util.list`)
 
