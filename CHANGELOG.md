@@ -4,6 +4,11 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr/1.1.0/)'a dayanır. 0.x 
 
 ## [Unreleased]
 
+### Düzeltilenler
+
+- `log`: cagd-log ile yazılan her satırda dosya adı `node_modules/cagdu-utilities/dist/util/require.js` görünüyordu (cagd-log adı kendisini ilk
+  `require()` edenden alır). cagd-log artık uygulamanın giriş dosyası adına yüklenir; satırlarda uygulamanın dosyası (ör. `src/index.ts`) görünür.
+
 ## [0.2.1] - 2026-10-12
 
 Kırıcı değişiklik yok: yalnızca eklemeler.
