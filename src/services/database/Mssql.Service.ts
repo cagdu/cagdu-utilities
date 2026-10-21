@@ -6,7 +6,8 @@ import { requireFromApp } from "../../util/require";
 import { BaseService } from "./Base.Service";
 
 // `npm link` / `file:` ile bağlı pakette normal `require("mssql")` tüketici projedeki mssql'i bulamaz.
-const sql = requireFromApp<typeof import("mssql")>("mssql");
+// İlk kullanımda yüklenir: tek dosyalık derlemede uygulama önce `util.registerModule("mssql", sql)` diyebilsin.
+const driver = () => requireFromApp<typeof import("mssql")>("mssql");
 
 export class MssqlService extends BaseService<IResult<any>> {
 	private static instance: MssqlService | null = null;
@@ -30,7 +31,7 @@ export class MssqlService extends BaseService<IResult<any>> {
 		if (MssqlService.pool?.connected) return MssqlService.pool;
 
 		if (!MssqlService.connecting) {
-			MssqlService.connecting = new sql.ConnectionPool(MssqlService.getPoolConfig())
+			MssqlService.connecting = new (driver().ConnectionPool)(MssqlService.getPoolConfig())
 				.connect()
 				.then(pool => {
 					pool.on("error", err => log.error("MssqlService: boştaki bağlantıda beklenmeyen hata", err));

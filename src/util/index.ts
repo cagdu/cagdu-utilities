@@ -9,6 +9,7 @@
  *   util.list.createListQuerySchema(z, {...}) / util.list.paginate(query, {...})
  *   util.redis.createCache({...}) / acquireLock() / onceEvery() / rateLimiter({...})
  *   util.log.info()
+ *   util.registerModule("mssql", sql)  // tek dosyalık derleme için
  */
 import * as date from "./date";
 import * as env from "./env";
@@ -18,4 +19,5 @@ import * as redis from "./redis";
 
 export { date, env, http, list, redis };
 export { log, setLogger } from "./logger";
+export { registerModule, unregisterModule } from "./require";
 export type { Logger } from "./logger";

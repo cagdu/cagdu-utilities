@@ -50,8 +50,9 @@ describe("sürücü çözümleme (requireFromApp)", () => {
 		assert.deepEqual(rows, [{ from: "app-pg" }]);
 	});
 
-	test("mssql uygulamanın node_modules'undan yüklenir", () => {
-		services.MssqlService.getInstance();
+	test("mssql uygulamanın node_modules'undan yüklenir", async () => {
+		// Sürücü ilk bağlantıda yüklenir; sahte ConnectionPool'da connect() yok, deneme hata verir.
+		await assert.rejects(services.MssqlService.getInstance().connect());
 		assert.ok(require.cache[fs.realpathSync(path.join(app, "node_modules", "mssql", "index.js"))]);
 	});
 

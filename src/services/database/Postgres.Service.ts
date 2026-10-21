@@ -6,7 +6,8 @@ import { requireFromApp } from "../../util/require";
 import { BaseService } from "./Base.Service";
 
 // `npm link` / `file:` ile bağlı pakette normal `require("pg")` tüketici projedeki pg'yi bulamaz.
-const { Pool } = requireFromApp<typeof import("pg")>("pg");
+// İlk kullanımda yüklenir: tek dosyalık derlemede uygulama önce `util.registerModule("pg", pg)` diyebilsin.
+const driver = () => requireFromApp<typeof import("pg")>("pg");
 type Pool = PgPool;
 
 export class PostgresService extends BaseService<QueryResult> {
@@ -25,7 +26,7 @@ export class PostgresService extends BaseService<QueryResult> {
 	/** Pool lazy kurulur: ilk sorguda. */
 	private getPool(): Pool {
 		if (!PostgresService.pool) {
-			PostgresService.pool = new Pool(PostgresService.getPoolConfig());
+			PostgresService.pool = new (driver().Pool)(PostgresService.getPoolConfig());
 			PostgresService.pool.on("error", err => log.error("PostgresService: boştaki bağlantıda beklenmeyen hata", err));
 		}
 		return PostgresService.pool;
