@@ -64,7 +64,7 @@ Sadece **kullandığın** servisin paketini kur. Gerisi opsiyonel:
 | Web               | `express` (v4 ve v5 test edildi) + `cors` + `helmet` + `express-rate-limit` |
 | Axios             | `axios`                                                               |
 | Mail              | `nodemailer`                                                          |
-| Log (opsiyonel)   | `cagd-log` (yoksa `console` kullanılır)                               |
+| Log (opsiyonel)   | `cagd-log` (yoksa `console` kullanılır; **kullanımdan kalkacak**, yerine `util.createFileLogger`) |
 | `util.env` / `util.list` | `zod` v4 (örneği parametre olarak verilir; kütüphane yüklemez)  |
 
 ### Paket yoksa ne olur?
@@ -90,6 +90,32 @@ import { RedisService } from "cagdu-utilities/services"; // da çalışır
 ```
 
 > Not: ESM'de `cagdu-utilities/services` alt yolundan **named import** yapıldığında Node, o modüldeki tüm export'ları import anında okur; yani kurulu olan tüm servis dosyaları hemen yüklenir (kurulu olmayanlar hata vermez, `undefined` olur). Tembel yükleme istiyorsan root'tan `classes`/`services` kullan.
+
+### Tek dosya derleme (Bun)
+
+`bun build --compile` ile tek bir exe üretilebilir. İki şeye dikkat:
+
+1. **Dinamik yüklenen paketleri kaydet.** `mssql`, `pg`, `@prisma/adapter-*` ve `cagd-log` çalışma anında aranır; exe'ye gömülmeleri
+   için uygulamada statik import edip **kullanmadan önce** kaydet (sürücüler ilk kullanımda yüklenir):
+
+   ```ts
+   import sql from "mssql";
+   import { util } from "cagdu-utilities";
+
+   util.registerModule("mssql", sql); // pg için: util.registerModule("pg", pg)
+   ```
+
+   Prisma adapter'ı için `adapterFactory` kullan (aşağıda Prisma bölümü).
+
+2. **Kullanmadığın opsiyonel paketleri dışarıda bırak.** Servis dosyaları kendi paketlerini statik `require` eder; kurulu olmayan bir
+   paket derlemeyi bozar. Kullanmadıklarını `external` yap (çalışma anında zaten yüklenmezler):
+
+   ```bash
+   bun build src/index.ts --compile --outfile app \
+     --external nodemailer --external redis --external pg --external axios --external "@prisma/*" --external cagd-log
+   ```
+
+Config dosyası (`config.jsonc`) exe'nin çalışma dizininde oluşur. `jsonc-parser` paketin içine gömülüdür; ek bir şey gerekmez.
 
 ### Yerel geliştirme (`npm link`)
 
@@ -409,6 +435,8 @@ util.date.getLocalISO(); // "2026-09-24T11:30:00.000+03:00" (ofsetli yerel saat)
 util.date.getLocalDay(); // "2026-09-24"
 util.log.info("mesaj"); // cagd-log varsa onu kullanır
 util.setLogger({ info: myLogger.info }); // kendi logger'ın
+util.createFileLogger({ dir: "log" }); // döndürmeli dosya logger'ı (aşağıda)
+util.registerModule("mssql", sql); // tek dosya derlemede sürücüyü ver
 util.env.createEnvHelpers(z); // ortam değişkeni şema yardımcıları (aşağıda)
 util.http.successResponse({ data }); // API cevap standardı
 util.http.ApiError; // standart hata sınıfı
@@ -425,6 +453,22 @@ mesaj `issues[0].message`, `data: { path }` · Prisma `P2002` → `409 CONFLICT`
 
 **İstemci IP (`getClientIp`):** başlıklara varsayılan olarak **güvenilmez**; `X-Forwarded-For`'un ilk değeri yalnızca `trustedForwardHeader(req)`
 `true` dönerse kullanılır (ör. kimliği doğrulanmış bir ağ geçidi). `trustProxy: true` Express'in `req.ip`'sini kullanır. `::ffff:` öneki kırpılır.
+
+### Dosya logger'ı (`util.createFileLogger`)
+
+Uzun süre bakımsız çalışan servisler için bağımlılıksız logger. Satırları dosyanın **sonuna ekler** (dosya büyüdükçe yavaşlamaz),
+yerel güne göre dosya açar, eski dosyaları siler ve son kayıtları bellekte tutar:
+
+```ts
+const logger = util.createFileLogger({ dir: "log", prefix: "agent", retentionDays: 30, level: "info", bufferSize: 500 });
+util.setLogger(logger); // paketin kendi logları da buraya gider
+
+logger.recent(100, "warn"); // son uyarı ve hatalar, eskiden yeniye: [{ time, level, message }]
+```
+
+- Dosya: `log/agent-2026-10-21.log`, her satır `{"time":"2026-10-21T12:00:00.000+03:00","level":"info","message":"..."}`.
+- Yazılamazsa (izin yok, disk dolu) hata fırlatmaz; console'a bir kez uyarır.
+- `cagd-log` her satırda dosyanın tamamını okuyup yeniden yazdığı için uzun çalışan servislerde yavaşlar ve kütüphaneden kalkacak.
 
 ### Ortam değişkenleri (`util.env`)
 

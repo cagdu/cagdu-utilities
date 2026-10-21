@@ -4,6 +4,34 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr/1.1.0/)'a dayanır. 0.x 
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-21
+
+Tek dosyalık derleme (`bun build --compile`) desteği ve uzun süre çalışan servisler için dosya logger'ı.
+
+### Eklenenler
+
+- **`util.registerModule(id, mod)` / `util.unregisterModule(id)`**: dinamik yüklenen paketleri (`mssql`, `pg`, `@prisma/adapter-*`,
+  `cagd-log`) uygulama kendisi verir; tek exe'ye gömülebilirler. Kayıt yoksa davranış aynı.
+- **`util.createFileLogger({ dir, prefix, retentionDays, level, console, bufferSize })`**: dosyaya ekleyerek yazan, günlük dönen,
+  eski dosyaları silen, son kayıtları `recent()` ile veren bağımlılıksız logger. `util.setLogger(logger)` ile etkinleşir.
+- README: "Tek dosya derleme (Bun)" bölümü.
+
+### Değişenler
+
+- `MssqlService` ve `PostgresService` sürücüyü modül yüklenirken değil **ilk kullanımda** arar (`registerModule` önce çağrılabilsin).
+- `jsonc-parser` artık bağımlılık değil: ESM kaynağından derlenmiş kopyası `dist/vendor/jsonc-parser.js` olarak pakete gömülü
+  (`npm run vendor` ile yenilenir). Paketin çalışma zamanı bağımlılığı kalmadı.
+
+### Düzeltilenler
+
+- Tek exe'de `Cannot find module './impl/format'` (jsonc-parser'ın UMD paketi bundler'larca izlenemiyordu).
+
+### Kullanımdan kalkacak
+
+- `cagd-log` desteği: her satırda log dosyasının tamamını yeniden yazıyor. Yerine `util.createFileLogger` kullanın.
+
+## [0.2.2] - 2026-10-19
+
 ### Düzeltilenler
 
 - `log`: cagd-log ile yazılan her satırda dosya adı `node_modules/cagdu-utilities/dist/util/require.js` görünüyordu (cagd-log adı kendisini ilk
