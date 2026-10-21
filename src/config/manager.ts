@@ -1,6 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import { applyEdits, modify, parse as parseJsonc, type ParseError } from "jsonc-parser";
+import type { ParseError } from "jsonc-parser";
+
+// jsonc-parser'ın gömülü CJS kopyası (scripts/vendor-jsonc.mjs). Paketin UMD "main"i tek dosyalık derlemede
+// (bun build --compile) çözülemiyor; ayrıca kütüphanenin çalışma zamanı bağımlılığı kalmıyor.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { applyEdits, modify, parse: parseJsonc } = require("../vendor/jsonc-parser.js") as typeof import("jsonc-parser");
 
 import { log } from "../util/logger";
 import { baseConfigEnv } from "./base-config";

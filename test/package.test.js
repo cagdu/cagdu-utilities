@@ -19,14 +19,13 @@ function run(cwd, file) {
 	return execFileSync(process.execPath, [file], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 }
 
-/** Sadece dist + zorunlu bağımlılık (jsonc-parser) içeren izole bir tüketici projesi. */
+/** Sadece dist içeren izole bir tüketici projesi (paketin çalışma zamanı bağımlılığı yok). */
 function isolatedProject() {
 	const dir = tmpDir("cagd-consumer-");
 	const pkgDir = path.join(dir, "node_modules", "cagdu-utilities");
 	fs.mkdirSync(pkgDir, { recursive: true });
 	fs.cpSync(path.join(ROOT, "dist"), path.join(pkgDir, "dist"), { recursive: true });
 	fs.copyFileSync(path.join(ROOT, "package.json"), path.join(pkgDir, "package.json"));
-	fs.cpSync(path.join(ROOT, "node_modules", "jsonc-parser"), path.join(dir, "node_modules", "jsonc-parser"), { recursive: true });
 	fs.writeFileSync(path.join(dir, "package.json"), '{ "name": "consumer", "version": "1.0.0" }');
 	return dir;
 }

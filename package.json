@@ -62,8 +62,9 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "npm run clean && tsc -p tsconfig.json",
+    "build": "npm run clean && tsc -p tsconfig.json && node -e \"require(\\\"fs\\\").cpSync(\\\"src/vendor\\\",\\\"dist/vendor\\\",{recursive:true})\"",
     "dev": "tsc -p tsconfig.json --watch",
+    "vendor": "node scripts/vendor-jsonc.mjs",
     "clean": "node -e \"require(\\\"fs\\\").rmSync(\\\"dist\\\",{recursive:true,force:true})\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
@@ -76,9 +77,6 @@
   },
   "engines": {
     "node": ">=20"
-  },
-  "dependencies": {
-    "jsonc-parser": "^3.3.1"
   },
   "peerDependencies": {
     "@prisma/adapter-mssql": ">=6.10.0 <8",
@@ -154,11 +152,13 @@
     "axios": "^1.7.7",
     "cagd-log": "1.1.0",
     "cors": "^2.8.5",
+    "esbuild": "^0.28.2",
     "eslint": "^9.39.5",
     "express": "^4.21.1",
     "express-rate-limit": "^7.4.1",
     "globals": "^17.12.0",
     "helmet": "^8.0.0",
+    "jsonc-parser": "^3.3.1",
     "mssql": "^12.7.2",
     "nodemailer": "^6.9.15",
     "pg": "^8.13.1",
