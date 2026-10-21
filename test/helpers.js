@@ -16,6 +16,16 @@ const dist = rel => require(path.join(DIST, rel));
 /** Geçici dizin oluşturur. */
 const tmpDir = (prefix = "cagd-test-") => fs.mkdtempSync(path.join(os.tmpdir(), prefix));
 
+/**
+ * Çıktısı karşılaştırılan alt süreçler için renksiz ortam. `node --test` renkli terminalde
+ * alt süreçlere FORCE_COLOR aktarır; console.log çıktısına ANSI kodları karışmasın.
+ */
+function plainEnv() {
+	const env = { ...process.env, NO_COLOR: "1" };
+	delete env.FORCE_COLOR;
+	return env;
+}
+
 /** Paketin loglarını sessize alır, yakalanan satırları döner. */
 function captureLogs() {
 	const lines = [];
@@ -51,4 +61,4 @@ function request(port, { method = "GET", path: p = "/", headers = {}, body, agen
 	});
 }
 
-module.exports = { DIST, dist, tmpDir, captureLogs, request };
+module.exports = { DIST, dist, tmpDir, plainEnv, captureLogs, request };

@@ -9,7 +9,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 
-const { dist, tmpDir, captureLogs } = require("./helpers");
+const { dist, tmpDir, plainEnv, captureLogs } = require("./helpers");
 
 captureLogs();
 const { config, baseConfig, services, util } = dist("index");
@@ -74,7 +74,7 @@ test("servis modülleri yüklenince sürücü aranmaz (ilk kullanımda yüklenir
 		const entry = path.join(app, "main.js");
 		const check = "console.log(Object.keys(require.cache).filter(f => /node_modules[\\\\/](mssql|pg)[\\\\/]/.test(f)).length);";
 		fs.writeFileSync(entry, `${script}\n${check}`);
-		const out = execFileSync(process.execPath, [entry], { cwd: app, encoding: "utf8" }).trim();
+		const out = execFileSync(process.execPath, [entry], { cwd: app, encoding: "utf8", env: plainEnv() }).trim();
 		assert.equal(out, "0");
 	} finally {
 		fs.rmSync(app, { recursive: true, force: true });

@@ -10,7 +10,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync, spawnSync } = require("node:child_process");
 
-const { tmpDir } = require("./helpers");
+const { tmpDir, plainEnv } = require("./helpers");
 
 const ROOT = path.join(__dirname, "..");
 const DIST = path.join(ROOT, "dist");
@@ -56,7 +56,7 @@ console.log(config.data.app.name, require("node:fs").existsSync("config.jsonc"))
 		try {
 			fs.copyFileSync(out, path.join(runDir, "app-bin"));
 			fs.chmodSync(path.join(runDir, "app-bin"), 0o755);
-			const result = execFileSync(path.join(runDir, "app-bin"), { cwd: runDir, encoding: "utf8" }).trim();
+			const result = execFileSync(path.join(runDir, "app-bin"), { cwd: runDir, encoding: "utf8", env: plainEnv() }).trim();
 			assert.equal(result, "x true");
 		} finally {
 			fs.rmSync(runDir, { recursive: true, force: true });
